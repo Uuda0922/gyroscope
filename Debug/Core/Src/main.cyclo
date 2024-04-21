@@ -1,0 +1,16 @@
+../Core/Src/main.c:107:6:can_transmit	3
+../Core/Src/main.c:125:6:HAL_TIM_PeriodElapsedCallback	2
+../Core/Src/main.c:131:6:MPU6050_Init	2
+../Core/Src/main.c:151:7:MPU6050_Read_Accel	1
+../Core/Src/main.c:165:7:MPU6050_Read_Gyro	1
+../Core/Src/main.c:178:8:Accel_X_Angle	1
+../Core/Src/main.c:183:8:Accel_Y_Angle	1
+../Core/Src/main.c:189:8:Accel_Z_Angle	1
+../Core/Src/main.c:201:5:main	1
+../Core/Src/main.c:279:6:SystemClock_Config	3
+../Core/Src/main.c:327:13:MX_CAN1_Init	2
+../Core/Src/main.c:364:13:MX_I2C3_Init	2
+../Core/Src/main.c:398:13:MX_TIM12_Init	3
+../Core/Src/main.c:436:13:MX_USART2_UART_Init	2
+../Core/Src/main.c:469:13:MX_GPIO_Init	1
+../Core/Src/main.c:517:6:Error_Handler	1
