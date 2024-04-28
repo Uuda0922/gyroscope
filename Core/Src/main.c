@@ -59,7 +59,7 @@
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan1;
 
-I2C_HandleTypeDef hi2c3;
+I2C_HandleTypeDef hi2c2;
 
 TIM_HandleTypeDef htim12;
 
@@ -95,16 +95,16 @@ int8_t msg3;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
-static void MX_I2C3_Init(void);
 static void MX_CAN1_Init(void);
 static void MX_TIM12_Init(void);
+static void MX_I2C2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void can_transmit(CAN_HandleTypeDef* hcan, uint16_t id, int8_t msg1, int8_t msg2){
+void can_transmit(CAN_HandleTypeDef* hcan, uint16_t id, int8_t msg1){
     CAN_TxHeaderTypeDef tx_header;
     uint8_t             buffer[8];
     uint32_t            pTxMailbox;
@@ -115,82 +115,74 @@ void can_transmit(CAN_HandleTypeDef* hcan, uint16_t id, int8_t msg1, int8_t msg2
     tx_header.DLC   = CAN_DATA_SIZE;
     tx_header.TransmitGlobalTime = DISABLE;
     buffer[0] = msg1;
-    buffer[1] = msg2;
+
 
 
     if (HAL_CAN_AddTxMessage(hcan, &tx_header, buffer, &pTxMailbox) == HAL_OK){
         while (HAL_CAN_IsTxMessagePending(hcan, pTxMailbox));
     }
 }
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-    if (htim == &htim12) {
-        can_transmit(&hcan1, 0x190, msg1, msg2);
-    }
-}
 
 void MPU6050_Init (void)
 {
 	uint8_t check, Data;
-	HAL_I2C_Mem_Read (&hi2c3, MPU6050_ADDR, WHO_AM_I_REG,1,&check,1,1000);
+	HAL_I2C_Mem_Read (&hi2c2, MPU6050_ADDR, WHO_AM_I_REG,1,&check,1,1000);
 
 	if( check == 104)
 	{
 		Data=0;
-		HAL_I2C_Mem_Write(&hi2c3, MPU6050_ADDR, PWR_MGMT_1_REG, 1, &Data, 1, 1000);
+		HAL_I2C_Mem_Write(&hi2c2, MPU6050_ADDR, PWR_MGMT_1_REG, 1, &Data, 1, 1000);
 
 		Data=0x07;
-		HAL_I2C_Mem_Write(&hi2c3, MPU6050_ADDR, SMPLRT_DIV_REG, 1, &Data, 1, 1000);
+		HAL_I2C_Mem_Write(&hi2c2, MPU6050_ADDR, SMPLRT_DIV_REG, 1, &Data, 1, 1000);
 
 		Data=0x00;
-		HAL_I2C_Mem_Write(&hi2c3, MPU6050_ADDR, ACCEL_CONFIG_REG, 1, &Data, 1, 1000);
+		HAL_I2C_Mem_Write(&hi2c2, MPU6050_ADDR, ACCEL_CONFIG_REG, 1, &Data, 1, 1000);
 
 		Data=0x00;
-		HAL_I2C_Mem_Write(&hi2c3, MPU6050_ADDR, GYRO_CONFIG_REG, 1, &Data, 1, 1000);
+		HAL_I2C_Mem_Write(&hi2c2, MPU6050_ADDR, GYRO_CONFIG_REG, 1, &Data, 1, 1000);
 	}
 }
 	void MPU6050_Read_Accel(void)
 	{
 		uint8_t Rec_Data[6];
-		HAL_I2C_Mem_Read(&hi2c3, MPU6050_ADDR, ACCEL_XOUT_H_REG, 1, Rec_Data, 6, 1000);
+		HAL_I2C_Mem_Read(&hi2c2, MPU6050_ADDR, ACCEL_XOUT_H_REG, 1, Rec_Data, 6, 1000);
 
 		Accel_X_Raw=(int16_t)(Rec_Data[0] << 8 | Rec_Data[1]);
 		Accel_Y_Raw=(int16_t)(Rec_Data[2] << 8 | Rec_Data[3]);
 		Accel_Z_Raw=(int16_t)(Rec_Data[4] << 8 | Rec_Data[5]);
 //		can_transmit(&hcan1, 0x191, Rec_Data[0], Rec_Data[1]);
-		Ax=Accel_X_Raw;//16384.0*1000;
-		Ay=Accel_Y_Raw;//16384.0*1000;
-		Az=Accel_Z_Raw/16384.0;
+		Ax=Accel_X_Raw/4096.0;
+		Ay=Accel_Y_Raw/4096.0;
+		Az=Accel_Z_Raw/4096.0;
 	}
 
 	void MPU6050_Read_Gyro(void)
 	{
 		uint8_t Rec_Data[6];
-		HAL_I2C_Mem_Read(&hi2c3, MPU6050_ADDR, GYRO_XOUT_H_REG, 1, Rec_Data, 6, 1000);
+		HAL_I2C_Mem_Read(&hi2c2, MPU6050_ADDR, GYRO_XOUT_H_REG, 1, Rec_Data, 6, 1000);
 
 		Gyro_X_Raw=(int16_t)(Rec_Data[0] << 8 | Rec_Data[1]);
 		Gyro_Y_Raw=(int16_t)(Rec_Data[2] << 8 | Rec_Data[3]);
 		Gyro_Z_Raw=(int16_t)(Rec_Data[4] << 8 | Rec_Data[5]);
 
-//		Gx=Gyro_X_Raw/131.0;
-//		Gy=Gyro_Y_Raw/131.0;
-//		Gz=Gyro_Z_Raw/131.0;
+		Gx=Gyro_X_Raw/131.0;
+		Gy=Gyro_Y_Raw/131.0;
+		Gz=Gyro_Z_Raw/131.0;
 	}
 	float Accel_X_Angle(float Ax, float Ay, float Az) {
-	    float angle_rad = atan2(Ay, sqrt(Az * Az + Ax * Ax));
-	    float angle_deg = angle_rad * 180.0 / M_PI;
+		float angle_deg = (180/3.141592)*(atan(Az/Ax));
 	    return angle_deg;
 	}
 	float Accel_Y_Angle(float Ax, float Ay, float Az) {
-	    float angle_rad = atan2(Ax, sqrt(Az * Az + Ay * Ay));
-	    float angle_deg = angle_rad * 180.0 / M_PI;
+		float angle_deg = (180/3.141592)*(atan(Ay/Az));
 	    return angle_deg;
 	}
+//	void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim12) {
+//	       can_transmit(&hcan1, 0x190, msg1);
+//	        			HAL_TIM_Base_Start_IT(&htim12);
+//	        	    }
 
-	float Accel_Z_Angle(float Ax, float Ay, float Az) {
-	    float angle_rad = atan2(sqrt(Ax * Ax + Ay * Ay), Az);
-	    float angle_deg = angle_rad * 180.0 / M_PI;
-	    return angle_deg;
-	}
 
 /* USER CODE END 0 */
 
@@ -222,9 +214,9 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
-  MX_I2C3_Init();
   MX_CAN1_Init();
   MX_TIM12_Init();
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim12);
   MX_GPIO_Init();
@@ -236,35 +228,24 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  MPU6050_Read_Accel();
-	  MPU6050_Read_Gyro();
 //	  float angle_X = Accel_X_Angle(Ax, Ay, Az);
 //	  float angle_Y = Accel_Y_Angle(Ax, Ay, Az);
 //	  float angle_Z = Accel_Z_Angle(Ax, Ay, Az);
-	  buffer[0] = (uint16_t)Ay >> 8 ;
-	  buffer[1] = Ay;
-//	  buffer[0]= ;
-//	  buffer[1]= ;
-//	  buffer[2]= angle_Z;
-	  HAL_Delay(500);
-//	  float angle_XY = atan2(Ay, Ax);
-//	  float angle_XY_degrees = angle_XY * (180.0 / M_PI);
-//	  float angle_XY_adjusted = angle_XY_degrees + 90.0;
 
-//	  sprintf(buffer, "X: %.2f gradus\n", angle_X);
-//	     for (int i = 0; buffer[i] != '\0'; i++) {
-//	         ITM_SendChar(buffer[i]);
-//	  }
-//
-//	  sprintf(buffer, "Y: %.2f gradus\n", angle_Y);
-//	     for (int j = 0; buffer[j] != '\0'; j++) {
-//	         ITM_SendChar(buffer[j]);
-//	  }
-//
-//	  sprintf(buffer, "Z: %.2f gradus\n", angle_Z);
-//	     for (int l = 0; buffer[l] != '\0'; l++) {
-//	         ITM_SendChar(buffer[l]);
-//	  }
+	  	MPU6050_Read_Accel();
+		  	MPU6050_Read_Gyro();
+//			rgb=TCS34725_Get_RGBData();
+//			RGB888=TCS34725_GetRGB888(rgb);
+
+			float angle_X = Accel_X_Angle(Ax, Ay, Az);
+			float angle_Y = Accel_Y_Angle(Ax, Ay, Az);
+//			float angle_Z = Accel_Z_Angle(Ax, Ay, Az);
+
+			buffer[0]= angle_X;
+			buffer[1]= angle_Y;
+//			buffer[2]= angle_Z;
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -357,36 +338,36 @@ static void MX_CAN1_Init(void)
 }
 
 /**
-  * @brief I2C3 Initialization Function
+  * @brief I2C2 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_I2C3_Init(void)
+static void MX_I2C2_Init(void)
 {
 
-  /* USER CODE BEGIN I2C3_Init 0 */
+  /* USER CODE BEGIN I2C2_Init 0 */
 
-  /* USER CODE END I2C3_Init 0 */
+  /* USER CODE END I2C2_Init 0 */
 
-  /* USER CODE BEGIN I2C3_Init 1 */
+  /* USER CODE BEGIN I2C2_Init 1 */
 
-  /* USER CODE END I2C3_Init 1 */
-  hi2c3.Instance = I2C3;
-  hi2c3.Init.ClockSpeed = 400000;
-  hi2c3.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c3.Init.OwnAddress1 = 0;
-  hi2c3.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c3.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c3.Init.OwnAddress2 = 0;
-  hi2c3.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c3.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c3) != HAL_OK)
+  /* USER CODE END I2C2_Init 1 */
+  hi2c2.Instance = I2C2;
+  hi2c2.Init.ClockSpeed = 100000;
+  hi2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c2.Init.OwnAddress1 = 0;
+  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c2.Init.OwnAddress2 = 0;
+  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN I2C3_Init 2 */
+  /* USER CODE BEGIN I2C2_Init 2 */
 
-  /* USER CODE END I2C3_Init 2 */
+  /* USER CODE END I2C2_Init 2 */
 
 }
 
